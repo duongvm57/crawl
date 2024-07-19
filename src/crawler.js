@@ -11,7 +11,8 @@ export default class Crawler {
                 const chapter = {
                     content: content,
                     url: request.url,
-                    name: request.userData.name
+                    name: request.userData.name,
+                    index: request.userData.index,
                 };
                 await dataset.pushData(chapter);
                 log.info(`Saving data: ${request.url}`);
@@ -23,7 +24,7 @@ export default class Crawler {
     async run(chapters) {
         await this.crawler.run(chapters.map(chapter => ({
             url: chapter.url,
-            userData: { name: chapter.name }
+            userData: { name: chapter.name, index: chapter.index }
         })));
     }
 }

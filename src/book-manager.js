@@ -11,7 +11,6 @@ export default class BookManager {
             const url = `https://backend.metruyencv.com/api/chapters?filter[book_id]=${bookId}&filter[type]=published`;
             const response = await fetch(url);
             const chapters = await response.json();
-            const totalChapters = chapters['data'].length;
 
             const bookName = chapters['extra']['book']['name'];
             const bookSlug = chapters['extra']['book']['slug'];
@@ -35,11 +34,13 @@ export default class BookManager {
             })
 
             let urlChapters = [];
-            for (let index = 1; index < totalChapters; index++) {
-                const chapterName = chapters['data'][index]['name'];
-                const chapterUrl = `https://metruyencv.com/truyen/${bookSlug}/chuong-${index + 1}`;
-                urlChapters.push({ url: chapterUrl, name: chapterName });
-            }
+
+            chapters['data'].forEach(chapter => {
+                const index = chapter['index'];
+                const chapterName = chapter['name'];
+                const chapterUrl = `https://metruyencv.com/truyen/${bookSlug}/chuong-${chapter['index']}`;
+                urlChapters.push({ url: chapterUrl, name: chapterName, index: index });
+            });
 
             const dataset = await Dataset.open(bookSlug);
             const crawler = new Crawler(dataset);
@@ -76,12 +77,18 @@ export default class BookManager {
         };
 
         const dataset = await Dataset.open(bookInfo.slug);
-        await dataset.forEach(async (item) => {
-            option.content.push({
-                title: item.name,
-                data: item.content
-            });
-        });
+        const chapters = await dataset.map(item => ({
+            title: item.name,
+            data: item.content,
+            index: item.index
+        }));
+
+        chapters.sort((a, b) => a.index - b.index);
+
+        option.content = chapters.map(chapter => ({
+            title: chapter.title,
+            data: chapter.data
+        }));
 
         await mkdir('ebooks', { recursive: true }).catch((err) => {
             console.error(err);
